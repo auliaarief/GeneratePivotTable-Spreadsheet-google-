@@ -1,0 +1,40 @@
+function generateSelectedPivotTabs() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // CONFIGURATION: Update these lines 
+  const masterPivotName = "Master_Pivot"; // Tab sheet with your template Pivot Table
+  const keyListSheetName = "KeyList";     // Tab containing the filter key for pivot
+  const filterColumnIndex = 1;            // Column number of the listed filter key  (1 = Col A, 2 = Col B, etc)
+
+  const masterSheet = ss.getSheetByName(masterPivotName);
+  const keySheet = ss.getSheetByName(keyListSheetName);
+  
+  // Read the listed keys
+  const lastKeyRow = keySheet.getLastRow();
+  const targetKeys = keySheet.getRange(1, 1, lastKeyRow, 1)
+    .getValues()
+    .flat()
+    .filter(val => val !== "");
+
+  targetKeys.forEach(key => {
+    const tabName = String(key).substring(0, 100);
+    
+    // Delete tab if already exists
+    const existingSheet = ss.getSheetByName(tabName);
+    if (existingSheet) {
+      ss.deleteSheet(existingSheet);
+    }
+
+    // Duplicate the Master Pivot tab and rename it
+    const newSheet = masterSheet.copyTo(ss).setName(tabName);
+    
+    // Apply the filter 
+    const pivotTable = newSheet.getPivotTables()[0];
+    if (pivotTable) {
+      const criteria = SpreadsheetApp.newFilterCriteria()
+        .setVisibleValues([String(key)])
+        .build();
+      pivotTable.addFilter(filterColumnIndex, criteria);
+    }
+  });
+}
